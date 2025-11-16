@@ -10,12 +10,12 @@ application_counter = 0
 
 @bot.message_handler(commands=["help"])
 def start(message):
-    bot.send_message(message.chat.id, text= "\n start - запуск бота. \nhelp - доступные команды. \nabout - информация о боте.")
+    bot.send_message(message.chat.id, text= "\n Start - запуск бота. \nHelp - доступные команды. \nAbout - информация о боте.")
 
 
 @bot.message_handler(commands=["about"])
 def about(message):
-    bot.send_message(message.chat.id, "Программист и разработчик, СОРОКИН А.С. сделал этого бота. Техническая поддержка по номеру: 89831254222.")
+    bot.send_message(message.chat.id, "Программист и разработчик, СОРОКИН А.С. сделал этого бота. Техническая поддержка по номеру: 89831254221.")
 
 
 # Производители принтеров
