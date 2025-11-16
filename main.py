@@ -1,19 +1,135 @@
 import telebot
 from config import API_KEY
+from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 
+admin_chat_id = '1807821919'
 bot = telebot.TeleBot(API_KEY)
 
-@bot.message_handler(commands = ["start"])
+# Счётчик заявок
+application_counter = 0
+
+@bot.message_handler(commands=["help"])
 def start(message):
-    bot.send_message(message.chat.id, "Hello World")
-
-@bot.message_handler(commands = ["help"])
-def start(message):
-    bot.send_message(message.chat.id, text= "\n start - запуск бота. \n help - доступные команды. \n about - информация о боте." )
+    bot.send_message(message.chat.id, text= "\n start - запуск бота. \nhelp - доступные команды. \nabout - информация о боте.")
 
 
-@bot.message_handler(commands = ["about"])
+@bot.message_handler(commands=["about"])
 def about(message):
-    bot.send_message(message.chat.id, "Программист и разработчик СОРОКИН А.С. сделал этого бота")
+    bot.send_message(message.chat.id, "Программист и разработчик, СОРОКИН А.С. сделал этого бота. Техническая поддержка по номеру: 89831254222.")
+
+
+# Производители принтеров
+manufacturers = ["HP", "Canon", "Epson", "Brother", "Samsung", "Lexmark",
+                 "Xerox", "Ricoh", "Dell", "Kodak", "Pantum"]
+
+
+@bot.message_handler(commands=['start'])
+def start(message):
+    global application_counter
+    application_counter += 1
+    current_number = application_counter
+    bot.send_message(message.chat.id,
+                     "Здравствуйте! Я помогу создать заявку на ремонт принтера.\nВыберите производителя принтера:",
+                     reply_markup=manufacturers_keyboard())
+    # Сохраняем номер заявки в пользовательских данных
+    bot.user_data = {'application_number': current_number}
+    bot.register_next_step_handler(message, get_printer_manufacturer)
+
+
+def manufacturers_keyboard():
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    for m in manufacturers:
+        markup.add(KeyboardButton(m))
+    return markup
+
+
+def get_printer_manufacturer(message):
+    manufacturer = message.text.strip()
+    if manufacturer not in manufacturers:
+        bot.send_message(message.chat.id, "Пожалуйста, выберите производителя из предложенных вариантов.")
+        bot.register_next_step_handler(message, get_printer_manufacturer)
+        return
+    bot.user_data['manufacturer'] = manufacturer
+    bot.send_message(message.chat.id, "Опишите проблему с принтером:")
+    bot.register_next_step_handler(message, get_problem_description)
+
+
+def get_problem_description(message):
+    description = message.text.strip()
+    bot.user_data['description'] = description
+    bot.send_message(message.chat.id, "Введите ваш номер телефона (11 цифр):")
+    bot.register_next_step_handler(message, get_phone_number)
+
+
+def get_phone_number(message):
+    phone = message.text.strip()
+    if not (phone.isdigit() and len(phone) == 11):
+        bot.send_message(message.chat.id, "Неверный формат номера. Пожалуйста, введите 11 цифр:")
+        bot.register_next_step_handler(message, get_phone_number)
+        return
+    bot.user_data['phone'] = phone
+    bot.send_message(message.chat.id, "Прикрепите фотографию (можете пропустить, нажав кнопку ниже):",
+                     reply_markup=photo_skip_keyboard())
+    bot.register_next_step_handler(message, get_photo)
+
+
+def photo_skip_keyboard():
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    markup.add(KeyboardButton('Пропустить'))
+    return markup
+
+
+def get_photo(message):
+    # Обработка нажатия кнопки "Пропустить" или фото
+    if message.text and message.text.lower() == 'пропустить':
+        bot.user_data['photo'] = None
+        ask_address(message)
+    elif message.photo:
+        # Пользователь прислал фото
+        photo_file_id = message.photo[-1].file_id
+        bot.user_data['photo'] = photo_file_id
+        ask_address(message)
+    elif message.text and message.text == 'Пропустить':
+        # Пользователь нажал кнопку "Пропустить"
+        bot.user_data['photo'] = None
+        ask_address(message)
+    else:
+        # Если что-то другое, показываем клавиатуру и просим повторить
+        bot.send_message(message.chat.id, "Пожалуйста, отправьте фото или нажмите 'Пропустить'.")
+        bot.register_next_step_handler(message, get_photo)
+
+
+def ask_address(message):
+    bot.send_message(message.chat.id, "Введите адрес (Улица и Дом):")
+    bot.register_next_step_handler(message, get_address)
+
+
+def get_address(message):
+    address = message.text.strip()
+    # Обеспечиваем, что адрес - строка
+    if not isinstance(address, str):
+        address = str(address)
+    bot.user_data['address'] = address
+    # Собираем всю информацию
+    data = bot.user_data
+    report = f"Заявка №{data['application_number']}:\n" \
+             f"Производитель: {data['manufacturer']}\n" \
+             f"Проблема: {data['description']}\n" \
+             f"Телефон: {data['phone']}\n" \
+             f"Адрес: {data['address']}"
+    # Отправляем заявку и фото, если есть
+    bot.send_message(int(admin_chat_id), report)
+    if data.get('photo'):
+        bot.send_photo(chat_id=int(admin_chat_id), photo=data['photo'])
+    bot.send_message(message.chat.id, f"Заявка №{data['application_number']} создана и отправлена. Вам перезвонят в ближайшее время. Спасибо!")
+
+
+def handle_unknown(message):
+    show_start(message)
+
+
+def show_start(message):
+    bot.send_message(message.chat.id, "Пожалуйста, начните с команды /start")
+
 
 bot.polling()
