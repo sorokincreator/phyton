@@ -1,4 +1,4 @@
-import telebot
+import telebo
 from config import API_KEY
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 
