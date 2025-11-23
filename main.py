@@ -53,7 +53,6 @@ manufacturers = ["HP", "Canon", "Epson", "Brother", "Samsung", "Lexmark",
 
 user_data = {}
 user_languages = {}
-# Словарь для отслеживания текущих шагов пользователей
 user_current_step = {}
 
 
@@ -161,7 +160,6 @@ def handle_callback(call):
     elif call.data == 'cancel':
         user_language = get_user_language(chat_id)
 
-        # Очищаем данные текущей заявки и текущий шаг
         if chat_id in user_data:
             del user_data[chat_id]
         if chat_id in user_current_step:
@@ -173,7 +171,7 @@ def handle_callback(call):
             text="❌ " + translations[user_language]['cancelled']
         )
 
-        # Сразу начинаем новую заявку
+
         start_application(chat_id, user_language)
 
 
@@ -216,7 +214,6 @@ def get_problem_description(message):
 
 
 def get_phone_number(message):
-    # Проверяем, не отменена ли заявка
     if message.chat.id not in user_current_step or user_current_step.get(message.chat.id) != 'enter_phone':
         return
 
@@ -239,7 +236,6 @@ def get_phone_number(message):
 
 
 def get_photo(message):
-    # Проверяем, не отменена ли заявка
     if message.chat.id not in user_current_step or user_current_step.get(message.chat.id) != 'attach_photo':
         return
 
@@ -268,7 +264,6 @@ def ask_address(message):
 
 
 def get_address(message):
-    # Проверяем, не отменена ли заявка
     if message.chat.id not in user_current_step or user_current_step.get(message.chat.id) != 'enter_address':
         return
 
@@ -296,7 +291,6 @@ def get_address(message):
     bot.send_message(message.chat.id,
                      translations[user_language]['application_created'].format(data['application_number']))
 
-    # Очищаем данные после успешного завершения
     if message.chat.id in user_data:
         del user_data[message.chat.id]
     if message.chat.id in user_current_step:
