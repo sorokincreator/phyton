@@ -304,7 +304,7 @@ def handle_unknown(message):
 
 
 if __name__ == "__main__":
-    print("Бот запускается...")
+    print("Бот запускается..")
     try:
         bot.polling(none_stop=True)
     except Exception as e:
